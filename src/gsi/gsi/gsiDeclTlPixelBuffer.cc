@@ -57,6 +57,14 @@ void set_pixel_in_pixel_buffer (tl::PixelBuffer *pb, unsigned int x, unsigned in
   }
 }
 
+//  Get raw pixel data as bytes (ARGB32 format, row-major order)
+static std::vector<char> get_pixel_data (const tl::PixelBuffer *pb)
+{
+  size_t size = size_t (pb->width ()) * size_t (pb->height ()) * sizeof (tl::color_t);
+  const char *data_ptr = reinterpret_cast<const char *> (pb->data ());
+  return std::vector<char> (data_ptr, data_ptr + size);
+}
+
 static tl::PixelBuffer read_pixel_buffer (const std::string &file)
 {
 #if defined(HAVE_PNG)
@@ -167,6 +175,26 @@ Class<tl::PixelBuffer> decl_PixelBuffer ("lay", "PixelBuffer",
   ) +
   gsi::method_ext ("pixel", &get_pixel_from_pixel_buffer, gsi::arg ("x"), gsi::arg ("y"),
     "@brief Gets the value of the pixel at position x, y\n"
+  ) +
+  gsi::method_ext ("pixel_data", &get_pixel_data,
+    "@brief Gets the raw pixel data as a byte array\n"
+    "\n"
+    "Returns the pixel buffer contents as a byte array in ARGB32 format. "
+    "Each pixel is 4 bytes (32 bits) in the format 0xAARRGGBB, stored in row-major order. "
+    "The total size is width * height * 4 bytes.\n"
+    "\n"
+    "This method enables efficient bulk pixel access using numpy:\n"
+    "\n"
+    "@code\n"
+    "import numpy as np\n"
+    "data = np.frombuffer(pb.pixel_data(), dtype=np.uint32).reshape(pb.height(), pb.width())\n"
+    "alpha = (data >> 24) & 0xFF\n"
+    "red = (data >> 16) & 0xFF\n"
+    "green = (data >> 8) & 0xFF\n"
+    "blue = data & 0xFF\n"
+    "@/code\n"
+    "\n"
+    "This method has been introduced in version 0.30.\n"
   ) +
   gsi::method ("read_png", &read_pixel_buffer, gsi::arg ("file"),
     "@brief Reads the pixel buffer from a PNG file"
